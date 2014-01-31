@@ -4,12 +4,15 @@ from collections import namedtuple
 Migration = namedtuple('Migration', 'name checksum sql after')
 
 
-
-
 def parse_migration(sql):
+    """
+    parses the metadata of a migration text
+
+    :param sql: text content (unicode on python2) of the migration
+    """
     lines = sql.splitlines()
     meta = {
-        'checksum': sha256(sql).hexdigest(),
+        'checksum': sha256(sql.encode('utf-8')).hexdigest(),
         'sql': sql,
         'after': None,
         'name': None
@@ -35,7 +38,7 @@ def parse_migration(sql):
     return Migration(**meta)
 
 
-initial_migration = parse_migration("""
+initial_migration = parse_migration(u"""
         -- migration micromigrate:enable
         create table micromigrate_migrations (
             id integer primary key,
@@ -44,6 +47,7 @@ initial_migration = parse_migration("""
             completed default 0
             );
 """)
+
 
 def push_migration(connection, state, migration):
 
@@ -116,7 +120,7 @@ def migrate(connection, migrations):
     # we put our internal migrations behind the given ones intentionally
     # this requires that people depend on our own migrations
     # in order to have theirs work
-    all_migrations =  migrations + [initial_migration]
+    all_migrations = migrations + [initial_migration]
     state = migration_state(connection)
     missing_migrations = verify_state(state, all_migrations)
 

@@ -28,6 +28,7 @@ def test_migration_initial(plain_conn):
     new_state = migrate(plain_conn, [])
     assert 'micromigrate:enable' in new_state
 
+
 def test_migrate_missing_dep_breaks(plain_conn):
     migration = parse_migration("""
         -- migration test
