@@ -4,15 +4,6 @@ from collections import namedtuple
 Migration = namedtuple('Migration', 'name checksum sql after')
 
 
-initial_migration = """
-        -- migration micromigrate:enable
-        create table micromigrate_migrations (
-            id integer primary key,
-            name unique,
-            checksum,
-            completed default 0
-            );
-"""
 
 
 def parse_migration(sql):
@@ -31,8 +22,9 @@ def parse_migration(sql):
             items = line[3:].split()
         else:
             break
-        if  meta['name'] is None:
-            assert items[0] == 'migration', 'first comment must be migration name'
+        if meta['name'] is None:
+            assert items[0] == 'migration', \
+                'first comment must be migration name'
             assert len(items) == 2
             meta['name'] = items[1]
         else:
@@ -43,10 +35,15 @@ def parse_migration(sql):
     return Migration(**meta)
 
 
-
-
-meta_migrations = [parse_migration(initial_migration)]
-
+initial_migration = parse_migration("""
+        -- migration micromigrate:enable
+        create table micromigrate_migrations (
+            id integer primary key,
+            name unique,
+            checksum,
+            completed default 0
+            );
+""")
 
 def push_migration(connection, state, migration):
 
@@ -104,7 +101,11 @@ def iter_next_doable(migrations):
         yield next_migration
         migrations.remove(next_migration)
 
+
 def can_do(migration, state):
+    if not state:
+        assert migration is initial_migration, \
+            'first migration must depend on %s' % initial_migration.name
     return (
         migration.after is None or
         not any(name not in state for name in migration.after)
@@ -115,7 +116,7 @@ def migrate(connection, migrations):
     # we put our internal migrations behind the given ones intentionally
     # this requires that people depend on our own migrations
     # in order to have theirs work
-    all_migrations =  migrations + meta_migrations
+    all_migrations =  migrations + [initial_migration]
     state = migration_state(connection)
     missing_migrations = verify_state(state, all_migrations)
 

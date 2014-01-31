@@ -34,6 +34,6 @@ def test_migrate_missing_dep_breaks(plain_conn):
         create table test(id, name);
     """)
     info = pytest.raises(
-        Exception, migrate,
+        AssertionError, migrate,
         plain_conn, [migration])
-    assert info.value.args[0].startswith('no such table')
+    assert info.value.args[0].startswith('first migration must')
