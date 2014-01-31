@@ -17,9 +17,9 @@ def test_parse_migration():
     pytest.raises(AssertionError,
                   parse_migration, "-- not named")
     result = parse_migration("-- migration test\n"
-                             "-- before fun")
+                             "-- after fun")
     assert result.name == 'test'
-    assert result.before == ('fun',)
+    assert result.after == ('fun',)
 
 
 def test_migration_initial(plain_conn):
@@ -28,3 +28,12 @@ def test_migration_initial(plain_conn):
     new_state = migrate(plain_conn, [])
     assert 'micromigrate:enable' in new_state
 
+def test_migrate_missing_dep_breaks(plain_conn):
+    migration = parse_migration("""
+        -- migration test
+        create table test(id, name);
+    """)
+    info = pytest.raises(
+        Exception, migrate,
+        plain_conn, [migration])
+    assert info.value.args[0].startswith('no such table')

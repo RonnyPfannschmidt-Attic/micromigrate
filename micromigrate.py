@@ -1,17 +1,16 @@
 from hashlib import sha256
 from collections import namedtuple
 
-Migration = namedtuple('Migration', 'name checksum sql before after')
+Migration = namedtuple('Migration', 'name checksum sql after')
 
 
 initial_migration = """
         -- migration micromigrate:enable
-        -- before *
         create table micromigrate_migrations (
             id integer primary key,
             name unique,
             checksum,
-            completed default null
+            completed default 0
             );
 """
 
@@ -21,7 +20,6 @@ def parse_migration(sql):
     meta = {
         'checksum': sha256(sql).hexdigest(),
         'sql': sql,
-        'before': None,
         'after': None,
         'name': None
     }
@@ -90,10 +88,38 @@ def verify_state(state, migrations):
     return missing
 
 
+def pick_next_doable(migrations):
+    names = set(x.name for x in migrations)
+
+    migrations = [
+        mig for mig in migrations
+        if mig.after is None or not (mig.after - names)
+    ]
+    return migrations[0]
+
+
+def iter_next_doable(migrations):
+    while migrations:
+        next_migration = pick_next_doable(migrations)
+        yield next_migration
+        migrations.remove(next_migration)
+
+def can_do(migration, state):
+    return (
+        migration.after is None or
+        not any(name not in state for name in migration.after)
+    )
+
+
 def migrate(connection, migrations):
-    all_migrations = meta_migrations + migrations
+    # we put our internal migrations behind the given ones intentionally
+    # this requires that people depend on our own migrations
+    # in order to have theirs work
+    all_migrations =  migrations + meta_migrations
     state = migration_state(connection)
     missing_migrations = verify_state(state, all_migrations)
-    for migration in missing_migrations:
+
+    for migration in iter_next_doable(missing_migrations):
+        assert can_do(migration, state)
         state = push_migration(connection, state, migration)
     return state
