@@ -1,0 +1,6 @@
+hgdistver
+pytest
+pytest-xdist
+pytest-cache
+flake8
+pycmd
