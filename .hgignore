@@ -1,4 +1,5 @@
 .env/
+.cache/
 .*\.swp
 .*\.py(c|o)
 .*\.egg-info
