@@ -1,4 +1,5 @@
 hgdistver
+sphinx
 pytest
 pytest-xdist
 pytest-cache

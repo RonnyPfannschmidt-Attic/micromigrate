@@ -1,5 +1,6 @@
 .env/
 .tox/
+docs/build/
 .cache/
 .*\.swp
 .*\.py(c|o)
