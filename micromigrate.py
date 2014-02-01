@@ -49,14 +49,15 @@ initial_migration = parse_migration(u"""
 """)
 
 
-def push_migration(connection, state, migration):
-
-    if state:
+def _prepare_migration(connection, migration, first):
+    if first:
         connection.execute("""
             insert into micromigrate_migrations (name, checksum)
             values (:name, :checksum)""", migration._asdict())
-    connection.execute(migration.sql)
-    if state:
+
+
+def _record_migration_result(connection, migration, first):
+    if first:
         c = connection.execute("""
             update micromigrate_migrations
                 set completed = 1
@@ -67,6 +68,12 @@ def push_migration(connection, state, migration):
             insert into micromigrate_migrations (name, checksum, completed)
             values (:name, :checksum, 1)""", migration._asdict())
     assert c.rowcount == 1
+
+
+def push_migration(connection, state, migration):
+    _prepare_migration(connection, migration, bool(state))
+    connection.execute(migration.sql)
+    _record_migration_result(connection, migration, bool(state))
     state = state.copy()
     state[migration.name] = migration.checksum
     return state
