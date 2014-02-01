@@ -90,7 +90,6 @@ def push_migration(connection, migration, first):
         _record_migration_result(connection, migration, first)
 
 
-
 def migration_state(connection):
     c = connection.execute("""
         select name, type

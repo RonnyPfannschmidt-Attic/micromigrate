@@ -8,5 +8,3 @@ def pytest_runtest_makereport(item, __multicall__):
     if conn is not None:
         report.sections.append(('db', '\n'.join(conn.iterdump())))
     return report
-
-

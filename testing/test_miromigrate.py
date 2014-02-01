@@ -1,6 +1,7 @@
 import pytest
 import micromigrate as mm
 
+
 @pytest.fixture
 def plain_conn(request):
     import sqlite3
