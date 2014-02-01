@@ -11,6 +11,9 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+  design_choices
+.. include:: ../../readme.rst
+
 
 
 Indices and tables
