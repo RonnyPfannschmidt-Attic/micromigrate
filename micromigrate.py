@@ -1,3 +1,4 @@
+from __future__ import print_function
 from hashlib import sha256
 from collections import namedtuple
 
@@ -57,45 +58,46 @@ initial_migration = parse_migration(u"""
 
 
 def _prepare_migration(connection, migration, first):
-    if first:
+    if not first:
         connection.execute("""
             insert into micromigrate_migrations (name, checksum)
             values (:name, :checksum)""", migration._asdict())
 
 
 def _record_migration_result(connection, migration, first):
-    if first:
+    if not first:
         c = connection.execute("""
             update micromigrate_migrations
                 set completed = 1
-                where name = :name
+                where name = :name;
             """, migration._asdict())
     else:
         c = connection.execute("""
             insert into micromigrate_migrations (name, checksum, completed)
-            values (:name, :checksum, 1)""", migration._asdict())
+            values (:name, :checksum, 1);""", migration._asdict())
     assert c.rowcount == 1
 
 
-def push_migration(connection, state, migration):
-    _prepare_migration(connection, migration, bool(state))
+def push_migration(connection, migration, first):
+    print('migration', migration.name)
+    _prepare_migration(connection, migration, first)
     connection.execute(migration.sql)
-    _record_migration_result(connection, migration, bool(state))
-    state = state.copy()
-    state[migration.name] = migration.checksum
-    return state
+    _record_migration_result(connection, migration, first)
 
 
 def migration_state(connection):
-    try:
-        result = connection.execute("""
-           select name, hash
-           from minimal_migrations
-        """)
-    except Exception:
-        return {}
-    else:
-        return dict(result)
+    c = connection.execute("""
+        select name, type
+        from sqlite_master
+        where type = "table"
+        and name = "micromigrate_migrations";
+    """)
+    items = list(c)
+    if items:
+        return dict(connection.execute("""
+            select name, checksum
+            from micromigrate_migrations
+        """))
 
 
 def verify_state(state, migrations):
@@ -142,9 +144,14 @@ def migrate(connection, migrations):
     # in order to have theirs work
     all_migrations = migrations + [initial_migration]
     state = migration_state(connection)
-    missing_migrations = verify_state(state, all_migrations)
+    if state is None:
+        state = {}
+        missing_migrations = all_migrations
+    else:
+        missing_migrations = verify_state(state, all_migrations)
 
     for migration in iter_next_doable(missing_migrations):
         assert can_do(migration, state)
-        state = push_migration(connection, state, migration)
-    return state
+        push_migration(connection, migration, first=not state)
+        state[migration.name] = migration.checksum
+    return migration_state(connection)
