@@ -1,5 +1,5 @@
 import pytest
-import micromigrate as mm
+from micromigrate import migrate as mm
 
 
 @pytest.fixture
@@ -12,7 +12,7 @@ def plain_conn(request):
 
 @pytest.fixture
 def conn(plain_conn):
-    mm.migrate(plain_conn, [])
+    mm.apply_migrations(plain_conn, [])
     return plain_conn
 
 
@@ -38,7 +38,7 @@ def test_parse_migration():
 def test_migration_initial(plain_conn):
     state = mm.migration_state(plain_conn)
     assert state is None
-    new_state = mm.migrate(plain_conn, [])
+    new_state = mm.apply_migrations(plain_conn, [])
     assert 'micromigrate:enable' in new_state
 
 
@@ -48,7 +48,7 @@ def test_migrate_missing_dep_breaks(plain_conn):
         create table test(id, name);
     """)
     info = pytest.raises(
-        AssertionError, mm.migrate,
+        AssertionError, mm.apply_migrations,
         plain_conn, [migration])
     assert info.value.args[0].startswith('first migration must')
 
@@ -74,6 +74,6 @@ def test_boken_transaction(conn):
         insert into foo values ('a');
         """)
     print(migration, migration.after)
-    mm.migrate(conn, [migration])
+    mm.apply_migrations(conn, [migration])
     state = mm.migration_state(conn)
     assert state[migration.name] == ':failed to complete'

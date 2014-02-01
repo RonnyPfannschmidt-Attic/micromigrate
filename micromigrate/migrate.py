@@ -148,7 +148,7 @@ def can_do(migration, state):
     )
 
 
-def migrate(connection, migrations):
+def apply_migrations(connection, migrations):
     # we put our internal migrations behind the given ones intentionally
     # this requires that people depend on our own migrations
     # in order to have theirs work
