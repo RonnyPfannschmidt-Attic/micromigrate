@@ -2,14 +2,15 @@ from __future__ import print_function
 from hashlib import sha256
 from collections import namedtuple
 
+
 class Migration(namedtuple('MigrationBase', 'name checksum sql after')):
     __slots__ = ()
+
     def __repr__(self):
         return '<Migration {name} ck {checksum}..>'.format(
             name=self.name,
             checksum=self.checksum[:6],
         )
-
 
 
 def parse_migration(sql):
