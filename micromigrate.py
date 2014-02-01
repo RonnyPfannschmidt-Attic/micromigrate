@@ -33,7 +33,7 @@ def parse_migration(sql):
         else:
             assert items[0] != 'migration'
             assert meta[items[0]] is None
-            meta[items[0]] = tuple(items[1:])
+            meta[items[0]] = frozenset(items[1:])
     assert meta['name'] is not None
     return Migration(**meta)
 
@@ -56,11 +56,17 @@ def push_migration(connection, state, migration):
             insert into micromigrate_migrations (name, checksum)
             values (:name, :checksum)""", migration._asdict())
     connection.execute(migration.sql)
-    connection.execute("""
-        update micromigrate_migrations
-            set completed = 1
-            where name = :name
-        """, migration._asdict())
+    if state:
+        c = connection.execute("""
+            update micromigrate_migrations
+                set completed = 1
+                where name = :name
+            """, migration._asdict())
+    else:
+        c = connection.execute("""
+            insert into micromigrate_migrations (name, checksum, completed)
+            values (:name, :checksum, 1)""", migration._asdict())
+    assert c.rowcount == 1
     state = state.copy()
     state[migration.name] = migration.checksum
     return state

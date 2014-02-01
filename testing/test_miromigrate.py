@@ -19,7 +19,7 @@ def test_parse_migration():
     result = parse_migration("-- migration test\n"
                              "-- after fun")
     assert result.name == 'test'
-    assert result.after == ('fun',)
+    assert result.after == frozenset(('fun',))
 
 
 def test_migration_initial(plain_conn):
