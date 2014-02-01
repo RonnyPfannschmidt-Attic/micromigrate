@@ -1,13 +1,18 @@
 import pytest
 import micromigrate as mm
 
-
 @pytest.fixture
 def plain_conn(request):
     import sqlite3
     conn = sqlite3.connect(':memory:')
-    #XXX: dump
+    request._pyfuncitem._conn = conn
     return conn
+
+
+@pytest.fixture
+def conn(plain_conn):
+    mm.migrate(plain_conn, [])
+    return plain_conn
 
 
 def print_db(conn):
@@ -55,3 +60,19 @@ def test_migration_state(plain_conn):
     assert mm.migration_state(plain_conn) == {
         mm.initial_migration.name: mm.initial_migration.checksum,
     }
+
+
+def test_boken_transaction(conn):
+    state = mm.migration_state(conn)
+    print('state', sorted(state))
+    migration = mm.parse_migration(u"""
+        -- migration broke
+        -- after micromigrate:enable
+        create table foo(name unique);
+        insert into foo values ('a');
+        insert into foo values ('a');
+        """)
+    print(migration, migration.after)
+    mm.migrate(conn, [migration])
+    state = mm.migration_state(conn)
+    assert state[migration.name] == ':failed to complete'

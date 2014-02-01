@@ -82,8 +82,13 @@ def _record_migration_result(connection, migration, first):
 def push_migration(connection, migration, first):
     print('migration', migration.name)
     _prepare_migration(connection, migration, first)
-    connection.execute(migration.sql)
-    _record_migration_result(connection, migration, first)
+    try:
+        connection.executescript(migration.sql)
+    except connection.Error as error:
+        print(' ', error)
+    else:
+        _record_migration_result(connection, migration, first)
+
 
 
 def migration_state(connection):
@@ -96,7 +101,13 @@ def migration_state(connection):
     items = list(c)
     if items:
         return dict(connection.execute("""
-            select name, checksum
+            select
+                name,
+                case
+                    when completed = 1
+                    then checksum
+                    else ':failed to complete'
+                end
             from micromigrate_migrations
         """))
 
@@ -114,10 +125,9 @@ def verify_state(state, migrations):
 
 def pick_next_doable(migrations):
     names = set(x.name for x in migrations)
-
     migrations = [
         mig for mig in migrations
-        if mig.after is None or not (mig.after - names)
+        if mig.after is None or not (names & mig.after)
     ]
     return migrations[0]
 
