@@ -5,6 +5,7 @@ from micromigrate import migrate as mm
 @pytest.fixture
 def dbname(request, tmpdir):
     db = tmpdir.join('test.sqlite.db')
+
     @request.addfinalizer
     def cleanup():
         import subprocess
@@ -49,6 +50,7 @@ def test_push_migration(dbname):
     state = mm.migration_state(dbname)
     assert state == {'test': migration.checksum}
 
+
 def test_migration_initial(dbname):
     state = mm.migration_state(dbname)
     assert state is None
@@ -59,8 +61,6 @@ def test_migration_initial(dbname):
     new_state = mm.apply_migrations(dbname, [migration])
     assert len(new_state) == 1
     assert new_state[migration.name] == migration.checksum
-
-
 
 
 def test_boken_transaction(dbname):

@@ -3,6 +3,7 @@ from hashlib import sha256
 from collections import namedtuple
 import subprocess
 
+
 class Migration(namedtuple('MigrationBase', 'name checksum sql after')):
     __slots__ = ()
 
@@ -47,7 +48,7 @@ def parse_migration(sql):
     return Migration(**meta)
 
 
-MIGRATION_SCRIPT="""
+MIGRATION_SCRIPT = """
 begin transaction;;
 
 create table if not exists micromigrate_migrations (
@@ -76,22 +77,24 @@ select 'commiting' as status, "{migration.name}" as migration;
 commit;
 """
 
+
 def runsqlite(dbname, script):
     subprocess.check_call([
         'sqlite3', '-line',
         str(dbname), script,
     ])
 
+
 def runquery(dbname, query):
     proc = subprocess.Popen(
         ['sqlite3', '-line', str(dbname), query],
-        stdout = subprocess.PIPE,
+        stdout=subprocess.PIPE,
         universal_newlines=True,
     )
     out, ignored = proc.communicate()
     if proc.returncode:
         raise Exception(proc.returncode)
-    
+
     chunks = out.split('\n\n')
     return [
         dict(x.strip().split(' = ') for x in chunk.splitlines())
@@ -106,6 +109,7 @@ def push_migration(dbname, migration):
     except subprocess.CalledProcessError:
         pass
     return migration_state(dbname)
+
 
 def migration_state(dbname):
     proc = '''select name, type
@@ -127,7 +131,6 @@ def migration_state(dbname):
         return dict(
             (row['name'], row['checksum'])
             for row in runquery(dbname, listit))
-
 
 
 def verify_state(state, migrations):
