@@ -3,21 +3,16 @@ from micromigrate import migrate as mm
 
 
 @pytest.fixture
-def plain_conn(request):
-    import sqlite3
-    conn = sqlite3.connect(':memory:')
-    request._pyfuncitem._conn = conn
-    return conn
-
-
-@pytest.fixture
-def conn(plain_conn):
-    mm.apply_migrations(plain_conn, [])
-    return plain_conn
-
-
-def print_db(conn):
-    print('\n'.join(conn.iterdump()))
+def dbname(request, tmpdir):
+    db = tmpdir.join('test.sqlite.db')
+    @request.addfinalizer
+    def cleanup():
+        import subprocess
+        if db.check():
+            subprocess.call([
+                'sqlite3', str(db), '.dump',
+            ])
+    return db
 
 
 def test_parse_migration():
@@ -35,45 +30,54 @@ def test_parse_migration():
     assert result.after == frozenset(('fun',))
 
 
-def test_migration_initial(plain_conn):
-    state = mm.migration_state(plain_conn)
+def test_push_migration(dbname):
+    state = mm.migration_state(dbname)
     assert state is None
-    new_state = mm.apply_migrations(plain_conn, [])
-    assert 'micromigrate:enable' in new_state
-
-
-def test_migrate_missing_dep_breaks(plain_conn):
     migration = mm.parse_migration("""
         -- migration test
-        create table test(id, name);
-    """)
-    info = pytest.raises(
-        AssertionError, mm.apply_migrations,
-        plain_conn, [migration])
-    assert info.value.args[0].startswith('first migration must')
+        fail
+        """)
+    mm.push_migration(dbname, migration)
+    state = mm.migration_state(dbname)
+    assert state is None
+
+    migration = mm.parse_migration("""
+        -- migration test
+        create table test(name);
+        """)
+    mm.push_migration(dbname, migration)
+    state = mm.migration_state(dbname)
+    assert state == {'test': migration.checksum}
+
+def test_migration_initial(dbname):
+    state = mm.migration_state(dbname)
+    assert state is None
+    migration = mm.parse_migration("""
+        -- migration test
+        create table test(name);
+        """)
+    new_state = mm.apply_migrations(dbname, [migration])
+    assert len(new_state) == 1
+    assert new_state[migration.name] == migration.checksum
 
 
-def test_migration_state(plain_conn):
-    assert mm.migration_state(plain_conn) is None
-    plain_conn.execute(mm.initial_migration.sql)
-    assert mm.migration_state(plain_conn) == {}
-    mm._record_migration_result(plain_conn, mm.initial_migration, True)
-    assert mm.migration_state(plain_conn) == {
-        mm.initial_migration.name: mm.initial_migration.checksum,
-    }
 
 
-def test_boken_transaction(conn):
-    state = mm.migration_state(conn)
-    print('state', sorted(state))
+def test_boken_transaction(dbname):
     migration = mm.parse_migration(u"""
         -- migration broke
-        -- after micromigrate:enable
         create table foo(name unique);
         insert into foo values ('a');
         insert into foo values ('a');
         """)
-    print(migration, migration.after)
-    mm.apply_migrations(conn, [migration])
-    state = mm.migration_state(conn)
-    assert state[migration.name] == ':failed to complete'
+    state = mm.apply_migrations(dbname, [migration])
+    assert state is None
+
+    migration_working = mm.parse_migration(u"""
+        -- migration working
+        create table bar(name unique);
+        """)
+
+    state = mm.apply_migrations(dbname, [migration_working, migration])
+    assert len(state) == 1
+    assert state['working'] == migration_working.checksum

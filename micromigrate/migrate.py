@@ -1,7 +1,7 @@
 from __future__ import print_function
 from hashlib import sha256
 from collections import namedtuple
-
+import subprocess
 
 class Migration(namedtuple('MigrationBase', 'name checksum sql after')):
     __slots__ = ()
@@ -47,68 +47,87 @@ def parse_migration(sql):
     return Migration(**meta)
 
 
-initial_migration = parse_migration(u"""
-        -- migration micromigrate:enable
-        create table micromigrate_migrations (
-            id integer primary key,
-            name unique,
-            checksum,
-            completed default 0
-            );
-""")
+MIGRATION_SCRIPT="""
+begin transaction;;
+
+create table if not exists micromigrate_migrations (
+    id integer primary key,
+    name unique,
+    checksum,
+    completed default 0
+    );
 
 
-def _prepare_migration(connection, migration, first):
-    if not first:
-        connection.execute("""
-            insert into micromigrate_migrations (name, checksum)
-            values (:name, :checksum)""", migration._asdict())
+insert into micromigrate_migrations (name, checksum)
+values ("{migration.name}", "{migration.checksum}");
+
+select 'executing' as status;
+
+{migration.sql}
+;
+select 'finalizing' as stats;
+
+update micromigrate_migrations
+set completed = 1
+where name = "{migration.name}";
+
+select 'commiting' as status, "{migration.name}" as migration;
+
+commit;
+"""
+
+def runsqlite(dbname, script):
+    subprocess.check_call([
+        'sqlite3', '-line',
+        str(dbname), script,
+    ])
+
+def runquery(dbname, query):
+    proc = subprocess.Popen(
+        ['sqlite3', '-line', str(dbname), query],
+        stdout = subprocess.PIPE,
+        universal_newlines=True,
+    )
+    out, ignored = proc.communicate()
+    if proc.returncode:
+        raise Exception(proc.returncode)
+    
+    chunks = out.split('\n\n')
+    return [
+        dict(x.strip().split(' = ') for x in chunk.splitlines())
+        for chunk in chunks if chunk.strip()
+    ]
 
 
-def _record_migration_result(connection, migration, first):
-    if not first:
-        c = connection.execute("""
-            update micromigrate_migrations
-                set completed = 1
-                where name = :name;
-            """, migration._asdict())
-    else:
-        c = connection.execute("""
-            insert into micromigrate_migrations (name, checksum, completed)
-            values (:name, :checksum, 1);""", migration._asdict())
-    assert c.rowcount == 1
-
-
-def push_migration(connection, migration, first):
-    print('migration', migration.name)
-    _prepare_migration(connection, migration, first)
+def push_migration(dbname, migration):
+    script = MIGRATION_SCRIPT.format(migration=migration)
     try:
-        connection.executescript(migration.sql)
-    except connection.Error as error:
-        print(' ', error)
-    else:
-        _record_migration_result(connection, migration, first)
+        runsqlite(dbname, script)
+    except subprocess.CalledProcessError:
+        pass
+    return migration_state(dbname)
 
-
-def migration_state(connection):
-    c = connection.execute("""
-        select name, type
+def migration_state(dbname):
+    proc = '''select name, type
         from sqlite_master
         where type = "table"
-        and name = "micromigrate_migrations";
-    """)
-    items = list(c)
-    if items:
-        return dict(connection.execute("""
-            select
+        and name = "micromigrate_migrations"
+    '''
+    listit = """select
                 name,
                 case
                     when completed = 1
                     then checksum
                     else ':failed to complete'
-                end
+                end as checksum
             from micromigrate_migrations
-        """))
+        """
+    result = runquery(dbname, proc)
+    if result:
+        return dict(
+            (row['name'], row['checksum'])
+            for row in runquery(dbname, listit))
+
 
 
 def verify_state(state, migrations):
@@ -139,29 +158,21 @@ def iter_next_doable(migrations):
 
 
 def can_do(migration, state):
-    if not state:
-        assert migration is initial_migration, \
-            'first migration must depend on %s' % initial_migration.name
     return (
         migration.after is None or
         not any(name not in state for name in migration.after)
     )
 
 
-def apply_migrations(connection, migrations):
+def apply_migrations(dbname, migrations):
     # we put our internal migrations behind the given ones intentionally
     # this requires that people depend on our own migrations
     # in order to have theirs work
-    all_migrations = migrations + [initial_migration]
-    state = migration_state(connection)
-    if state is None:
-        state = {}
-        missing_migrations = all_migrations
-    else:
-        missing_migrations = verify_state(state, all_migrations)
+    state = migration_state(dbname) or {}
+    missing_migrations = verify_state(state, migrations)
 
     for migration in iter_next_doable(missing_migrations):
         assert can_do(migration, state)
-        push_migration(connection, migration, first=not state)
+        push_migration(dbname, migration)
         state[migration.name] = migration.checksum
-    return migration_state(connection)
+    return migration_state(dbname)
