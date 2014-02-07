@@ -15,3 +15,7 @@ class Migration(namedtuple('MigrationBase', 'name checksum sql after')):
             self.after is None or
             not any(name not in state for name in self.after)
         )
+
+
+class MigrationError(Exception):
+    pass
