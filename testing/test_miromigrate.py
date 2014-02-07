@@ -1,6 +1,6 @@
 import pytest
 from micromigrate import migrate as mm
-
+from micromigrate.backend_script import ScriptBackend
 
 @pytest.fixture
 def dbname(request, tmpdir):
@@ -15,6 +15,9 @@ def dbname(request, tmpdir):
             ])
     return db
 
+@pytest.fixture
+def db(dbname):
+    return ScriptBackend(dbname)
 
 def test_parse_migration():
     result = mm.parse_migration("-- migration test")
@@ -31,46 +34,46 @@ def test_parse_migration():
     assert result.after == frozenset(('fun',))
 
 
-def test_push_migration(dbname):
-    state = mm.migration_state(dbname)
+def test_push_migration(db):
+    state = db.state()
     assert state is None
     migration = mm.parse_migration("""
         -- migration test
         fail
         """)
-    mm.push_migration(dbname, migration)
-    state = mm.migration_state(dbname)
+    pytest.raises(Exception, db.apply ,migration)
+    state = db.state()
     assert state is None
 
     migration = mm.parse_migration("""
         -- migration test
         create table test(name);
         """)
-    mm.push_migration(dbname, migration)
-    state = mm.migration_state(dbname)
+    db.apply(migration)
+    state = db.state()
     assert state == {'test': migration.checksum}
 
 
-def test_migration_initial(dbname):
-    state = mm.migration_state(dbname)
+def test_migration_initial(db):
+    state = db.state()
     assert state is None
     migration = mm.parse_migration("""
         -- migration test
         create table test(name);
         """)
-    new_state = mm.apply_migrations(dbname, [migration])
+    new_state = mm.apply_migrations(db, [migration])
     assert len(new_state) == 1
     assert new_state[migration.name] == migration.checksum
 
 
-def test_boken_transaction(dbname):
+def test_boken_transaction(db):
     migration = mm.parse_migration(u"""
         -- migration broke
         create table foo(name unique);
         insert into foo values ('a');
         insert into foo values ('a');
         """)
-    state = mm.apply_migrations(dbname, [migration])
+    state = mm.apply_migrations(db, [migration])
     assert state is None
 
     migration_working = mm.parse_migration(u"""
@@ -78,6 +81,6 @@ def test_boken_transaction(dbname):
         create table bar(name unique);
         """)
 
-    state = mm.apply_migrations(dbname, [migration_working, migration])
+    state = mm.apply_migrations(db, [migration_working, migration])
     assert len(state) == 1
     assert state['working'] == migration_working.checksum
