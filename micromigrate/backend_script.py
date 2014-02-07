@@ -10,14 +10,6 @@ from .types import MigrationError
 from .util import parse_lineoutput, output_or_raise
 
 
-def runquery(dbname, query):
-    out = output_or_raise(
-        'sqlite3', '-line',
-        str(dbname), query,
-    )
-    return parse_lineoutput(out)
-
-
 class ScriptBackend(BackendBase):
     def __init__(self, dbname):
         self.dbname = dbname
@@ -33,4 +25,8 @@ class ScriptBackend(BackendBase):
             raise MigrationError('migration failed', e)
 
     def run_query(self, query):
-        return runquery(self.dbname, query)
+        out = output_or_raise(
+            'sqlite3', '-line',
+            str(self.dbname), query,
+        )
+        return parse_lineoutput(out)
