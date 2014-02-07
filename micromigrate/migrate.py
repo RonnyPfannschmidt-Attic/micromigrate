@@ -1,7 +1,6 @@
 from __future__ import print_function
 from hashlib import sha256
 from collections import namedtuple
-import subprocess
 
 
 class Migration(namedtuple('MigrationBase', 'name checksum sql after')):

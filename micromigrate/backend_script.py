@@ -47,12 +47,16 @@ def runquery(dbname, query):
     out, ignored = proc.communicate()
     if proc.returncode:
         raise Exception(proc.returncode, out, ignored)
+    return parse_lineoutput(out)
 
-    chunks = out.split('\n\n')
+
+def parse_lineoutput(data):
+    chunks = data.split('\n\n')
     return [
         dict(x.strip().split(' = ') for x in chunk.splitlines())
         for chunk in chunks if chunk.strip()
     ]
+
 
 def runsqlite(dbname, script):
     subprocess.check_call([
@@ -72,7 +76,6 @@ class ScriptBackend(BackendBase):
     def __repr__(self):
         return '<scriptbackend %r>' % (self.dbname,)
 
-
     def apply(self, migration):
         script = MIGRATION_SCRIPT.format(migration=migration)
         try:
@@ -89,4 +92,3 @@ class ScriptBackend(BackendBase):
     def results(self, query, params):
         assert not params, 'params unsupported'
         return runquery(self.dbname, query)
-

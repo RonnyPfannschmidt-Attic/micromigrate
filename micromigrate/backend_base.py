@@ -30,6 +30,3 @@ class BackendBase(object):
                 row['name']: row['checksum']
                 for row in self.run_query(MIGRATIONS_AND_CHECKSUMS)
             }
-
-
-

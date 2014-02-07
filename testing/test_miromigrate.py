@@ -2,6 +2,7 @@ import pytest
 from micromigrate import migrate as mm
 from micromigrate.backend_script import ScriptBackend
 
+
 @pytest.fixture
 def dbname(request, tmpdir):
     db = tmpdir.join('test.sqlite.db')
@@ -15,9 +16,11 @@ def dbname(request, tmpdir):
             ])
     return db
 
+
 @pytest.fixture
 def db(dbname):
     return ScriptBackend(dbname)
+
 
 def test_parse_migration():
     result = mm.parse_migration("-- migration test")
@@ -41,7 +44,7 @@ def test_push_migration(db):
         -- migration test
         fail
         """)
-    pytest.raises(Exception, db.apply ,migration)
+    pytest.raises(Exception, db.apply, migration)
     state = db.state()
     assert state is None
 
