@@ -65,13 +65,10 @@ def verify_state(state, migrations):
         return missing
 
 
-def pop_next_to_apply(migrations):
-    takefrom = migrations.copy()
-    while takefrom:
-        name, item = takefrom.popitem()
-        if item.after is None or not any(x in migrations for x in item.after):
-            migrations.pop(name)
-            return item
+def pop_next_to_apply(migrations, state):
+    for name, item in migrations.items():
+        if item.can_apply_on(state):
+            return migrations.pop(name)
 
 
 def apply_migrations(db, migrations):
@@ -79,8 +76,7 @@ def apply_migrations(db, migrations):
     missing_migrations = verify_state(state, migrations)
 
     while missing_migrations:
-        migration = pop_next_to_apply(missing_migrations)
-        assert migration.can_apply_on(state)
+        migration = pop_next_to_apply(missing_migrations, state)
         try:
             db.apply(migration)
         except Exception as e:
