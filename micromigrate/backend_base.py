@@ -1,21 +1,7 @@
-
-HAS_MIGRATIONS = '''
-    select name, type
-    from sqlite_master
-    where type = "table"
-    and name = "micromigrate_migrations"
-'''
-
-MIGRATIONS_AND_CHECKSUMS = """
-    select
-        name,
-        case
-            when completed = 1
-            then checksum
-            else ':failed to complete'
-        end as checksum
-    from micromigrate_migrations
-"""
+from .constants import (
+    HAS_MIGRATIONS,
+    MIGRATIONS_AND_CHECKSUMS,
+)
 
 
 class BackendBase(object):
