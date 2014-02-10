@@ -78,12 +78,3 @@ def test_boken_transaction(db):
         """)
     state = apply_migrations(db, [migration])
     assert state is None
-
-    migration_working = parse_migration(u"""
-        -- migration working
-        create table bar(name unique);
-        """)
-
-    state = apply_migrations(db, [migration_working, migration])
-    assert len(state) == 1
-    assert state['working'] == migration_working.checksum

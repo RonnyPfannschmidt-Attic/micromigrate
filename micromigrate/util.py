@@ -1,7 +1,11 @@
 from __future__ import print_function
+
 import subprocess
+
 from hashlib import sha256
-from .types import Migration
+from itertools import takewhile
+
+from .types import Migration, KWException
 
 
 def parse_lineoutput(data):
@@ -17,12 +21,19 @@ def output_or_raise(*args):
     proc = subprocess.Popen(
         args,
         stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         universal_newlines=True,
     )
-    out, ignored = proc.communicate()
+    out, err = proc.communicate()
     if proc.returncode:
-        raise Exception(proc.returncode, out, ignored)
+        raise KWException(
+            returncode=proc.returncode,
+            out=out, err=err)
     return out
+
+
+def _is_commentline(line):
+    return line.startswith('-- ')
 
 
 def parse_migration(sql):
@@ -31,30 +42,30 @@ def parse_migration(sql):
 
     :param sql: text content (unicode on python2) of the migration
     """
-    lines = sql.splitlines()
     meta = {
         'checksum': sha256(sql.encode('utf-8')).hexdigest(),
         'sql': sql,
         'after': None,
         'name': None
     }
+    lines = sql.strip().splitlines()
+    lines = takewhile(_is_commentline, lines)
     for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        if line.startswith('-- '):
-            items = line[3:].split()
-        else:
-            break
+        items = line.split()[1:]
+        key = items.pop(0)
         if meta['name'] is None:
-            assert items[0] == 'migration', \
+            assert key == 'migration', \
                 'first comment must be migration name'
-            assert len(items) == 2
-            meta['name'] = items[1]
+            assert items
+            meta['name'] = items[0]
         else:
-            assert items[0] != 'migration'
-            assert meta[items[0]] is None
-            meta[items[0]] = frozenset(items[1:])
+            assert key != 'migration'
+            if key not in meta:
+                continue  # XXX warn
+            if meta[key] is None:
+                meta[key] = frozenset(items)
+            #XXX FAIL
+
     assert meta['name'] is not None
     return Migration(**meta)
 
@@ -67,7 +78,7 @@ def verify_state(state, migrations):
         else:
                 missing[migration.name] = migration
 
-        return missing
+    return missing
 
 
 def pop_next_to_apply(migrations, state):
@@ -80,6 +91,7 @@ def apply_migrations(db, migrations):
     state = db.state() or {}
     missing_migrations = verify_state(state, migrations)
 
+    print(missing_migrations)
     while missing_migrations:
         migration = pop_next_to_apply(missing_migrations, state)
         try:

@@ -17,5 +17,15 @@ class Migration(namedtuple('MigrationBase', 'name checksum sql after')):
         )
 
 
+class KWException(Exception):
+
+    def __init__(self, *k, **kw):
+        newk = k + (kw,)
+        Exception.__init__(self, *newk)
+
+
 class MigrationError(Exception):
-    pass
+    def __str__(self):
+        return "%s %s" % (
+            self.args[0],
+            self.args[-1].args[-1]['err'])
