@@ -22,7 +22,7 @@ class ScriptBackend(BackendBase):
         try:
             self.run_query(script)
         except Exception as e:
-            raise MigrationError('migration failed', e)
+            raise MigrationError(migration, e)
 
     def run_query(self, query):
         out = output_or_raise(

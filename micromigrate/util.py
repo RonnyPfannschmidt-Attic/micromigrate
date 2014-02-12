@@ -93,12 +93,9 @@ def apply_migrations(db, migrations):
 
     print(missing_migrations)
     while missing_migrations:
-        migration = pop_next_to_apply(missing_migrations, state)
-        try:
-            db.apply(migration)
-        except Exception as e:
-            print(migration, 'failed', e)
-            break
+        migration = pop_next_to_apply(
+                missing_migrations, state)
+        db.apply(migration)
         state[migration.name] = migration.checksum
     real_state = db.state()
     if real_state is not None:

@@ -26,6 +26,6 @@ class KWException(Exception):
 
 class MigrationError(Exception):
     def __str__(self):
-        return "%s %s" % (
-            self.args[0],
+        return "migration `%s` failed: %s" % (
+            self.args[0].name,
             self.args[-1].args[-1]['err'])

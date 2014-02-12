@@ -1,6 +1,7 @@
 import pytest
 from micromigrate import parse_migration, apply_migrations
 from micromigrate.backend_script import ScriptBackend
+from micromigrate import MigrationError
 
 
 @pytest.fixture
@@ -76,5 +77,5 @@ def test_boken_transaction(db):
         insert into foo values ('a');
         insert into foo values ('a');
         """)
-    state = apply_migrations(db, [migration])
-    assert state is None
+    with pytest.raises(MigrationError):
+        apply_migrations(db, [migration])
