@@ -87,14 +87,16 @@ def pop_next_to_apply(migrations, state):
             return migrations.pop(name)
 
 
-def apply_migrations(db, migrations):
+def missing_migrations(db, migrations):
     state = db.state() or {}
-    missing_migrations = verify_state(state, migrations)
+    return verify_state(state, migrations)
 
-    print(missing_migrations)
-    while missing_migrations:
+def apply_migrations(db, migrations):
+    missing = missing_migrations(db, migrations)
+    print(missing)
+    while missing:
         migration = pop_next_to_apply(
-                missing_migrations, state)
+                missing, state)
         db.apply(migration)
         state[migration.name] = migration.checksum
     real_state = db.state()

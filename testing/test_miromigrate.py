@@ -56,6 +56,7 @@ def test_push_migration(db):
     db.apply(migration)
     state = db.state()
     assert state == {'test': migration.checksum}
+    assert 0
 
 
 def test_migration_initial(db):
