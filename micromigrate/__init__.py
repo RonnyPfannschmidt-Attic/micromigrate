@@ -1,6 +1,6 @@
 __all__ = [
     'MigrationError',
-    'apply_migrations', 'parse_migration',
+    'apply_migrations', 'parse_migration', 'missing_migrations',
     'find_in_path',
 ]
 from .types import MigrationError

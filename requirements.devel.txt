@@ -1,4 +1,5 @@
 hgdistver
+apsw
 sphinx
 pytest
 pytest-xdist

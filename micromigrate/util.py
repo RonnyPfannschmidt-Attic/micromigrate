@@ -91,12 +91,13 @@ def missing_migrations(db, migrations):
     state = db.state() or {}
     return verify_state(state, migrations)
 
+
 def apply_migrations(db, migrations):
+    state = db.state() or {}
     missing = missing_migrations(db, migrations)
     print(missing)
     while missing:
-        migration = pop_next_to_apply(
-                missing, state)
+        migration = pop_next_to_apply(missing, state)
         db.apply(migration)
         state[migration.name] = migration.checksum
     real_state = db.state()
