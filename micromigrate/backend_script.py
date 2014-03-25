@@ -14,7 +14,7 @@ class ScriptBackend(BackendBase):
 
     def __repr__(self):
         return '<ScriptBackend %r>' % (self.dbname,)
-    
+
     def run_script(self, script):
         self.run_query(script)
 

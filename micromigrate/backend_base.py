@@ -1,10 +1,10 @@
+from .types import MigrationError
 from .constants import (
     HAS_MIGRATIONS,
     MIGRATIONS_AND_CHECKSUMS,
+    MIGRATION_SCRIPT,
 )
 
-from .constants import MIGRATION_SCRIPT
-from .types import MigrationError
 
 class BackendBase(object):
 
@@ -13,7 +13,6 @@ class BackendBase(object):
 
     def run_script(self, script):
         raise NotImplementedError
-
 
     def apply(self, migration):
         script = MIGRATION_SCRIPT.format(migration=migration)

@@ -3,7 +3,6 @@ from micromigrate import parse_migration, apply_migrations
 from micromigrate import MigrationError
 
 
-
 def test_parse_migration():
     result = parse_migration("-- migration test")
     assert result.name == 'test'

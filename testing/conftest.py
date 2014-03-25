@@ -9,6 +9,7 @@ backends = {
     'binding': PySqliteBackend,
 }
 
+
 @pytest.fixture
 def dbname(request, tmpdir):
     db = tmpdir.join('test.sqlite.db')
