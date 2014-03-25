@@ -1,8 +1,13 @@
 import pytest
 
 from micromigrate.backend_script import ScriptBackend
-#from micromigrate.backend_a
+from micromigrate.backend_pysqlite import PySqliteBackend
 
+
+backends = {
+    'script': ScriptBackend,
+    'binding': PySqliteBackend,
+}
 
 @pytest.fixture
 def dbname(request, tmpdir):
@@ -18,9 +23,9 @@ def dbname(request, tmpdir):
     return db
 
 
-@pytest.fixture
-def db(dbname):
-    return ScriptBackend(dbname)
+@pytest.fixture(params=sorted(backends.keys()))
+def db(request, dbname):
+    return backends[request.param](dbname)
 
 
 @pytest.mark.tryfirst

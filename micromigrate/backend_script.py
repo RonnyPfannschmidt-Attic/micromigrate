@@ -5,8 +5,6 @@
 """
 
 from .backend_base import BackendBase
-from .constants import MIGRATION_SCRIPT
-from .types import MigrationError
 from .util import parse_lineoutput, output_or_raise
 
 
@@ -16,13 +14,9 @@ class ScriptBackend(BackendBase):
 
     def __repr__(self):
         return '<ScriptBackend %r>' % (self.dbname,)
-
-    def apply(self, migration):
-        script = MIGRATION_SCRIPT.format(migration=migration)
-        try:
-            self.run_query(script)
-        except Exception as e:
-            raise MigrationError(migration, e)
+    
+    def run_script(self, script):
+        self.run_query(script)
 
     def run_query(self, query):
         out = output_or_raise(

@@ -1,5 +1,6 @@
 hgdistver
 apsw
+sqlplarse
 sphinx
 pytest
 pytest-xdist
