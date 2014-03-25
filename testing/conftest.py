@@ -1,5 +1,27 @@
 import pytest
 
+from micromigrate.backend_script import ScriptBackend
+#from micromigrate.backend_a
+
+
+@pytest.fixture
+def dbname(request, tmpdir):
+    db = tmpdir.join('test.sqlite.db')
+
+    @request.addfinalizer
+    def cleanup():
+        import subprocess
+        if db.check():
+            subprocess.call([
+                'sqlite3', str(db), '.dump',
+            ])
+    return db
+
+
+@pytest.fixture
+def db(dbname):
+    return ScriptBackend(dbname)
+
 
 @pytest.mark.tryfirst
 def pytest_runtest_makereport(item, __multicall__):

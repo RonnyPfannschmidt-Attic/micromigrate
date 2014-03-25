@@ -1,26 +1,7 @@
 import pytest
 from micromigrate import parse_migration, apply_migrations
-from micromigrate.backend_script import ScriptBackend
 from micromigrate import MigrationError
 
-
-@pytest.fixture
-def dbname(request, tmpdir):
-    db = tmpdir.join('test.sqlite.db')
-
-    @request.addfinalizer
-    def cleanup():
-        import subprocess
-        if db.check():
-            subprocess.call([
-                'sqlite3', str(db), '.dump',
-            ])
-    return db
-
-
-@pytest.fixture
-def db(dbname):
-    return ScriptBackend(dbname)
 
 
 def test_parse_migration():
