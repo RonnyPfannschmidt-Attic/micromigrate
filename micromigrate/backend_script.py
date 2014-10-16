@@ -12,6 +12,10 @@ class ScriptBackend(BackendBase):
     def __init__(self, dbname):
         self.dbname = dbname
 
+    @classmethod
+    def from_path(cls, dbname):
+        return cls(dbname)
+
     def __repr__(self):
         return '<ScriptBackend %r>' % (self.dbname,)
 

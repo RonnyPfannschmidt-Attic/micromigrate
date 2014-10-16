@@ -26,7 +26,7 @@ def dbname(request, tmpdir):
 
 @pytest.fixture(params=sorted(backends.keys()))
 def db(request, dbname):
-    return backends[request.param](dbname)
+    return backends[request.param].from_path(dbname)
 
 
 @pytest.mark.tryfirst
