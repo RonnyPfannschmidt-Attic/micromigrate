@@ -1,9 +1,14 @@
 from .types import MigrationError
-from .constants import (
-    HAS_MIGRATIONS,
-    MIGRATIONS_AND_CHECKSUMS,
-    MIGRATION_SCRIPT,
-)
+import pkg_resources
+
+
+def _script(name):
+    return pkg_resources.resource_string(
+        __name__, 'scripts/' + name).decode('utf-8')
+
+HAS_MIGRATIONS = _script('has_migrations.sql')
+MIGRATIONS_AND_CHECKSUMS = _script('migrations_and_sums.sql')
+MIGRATION_SCRIPT = _script('migration.tpl.sql')
 
 
 class BackendBase(object):

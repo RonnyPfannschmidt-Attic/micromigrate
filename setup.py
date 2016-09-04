@@ -6,6 +6,9 @@ setup(
     packages=[
         'micromigrate',
     ],
+    package_data={
+        'micromigrate': ['scripts/*.sql'],
+    },
     setup_requires=[
         'setuptools_scm',
     ],
