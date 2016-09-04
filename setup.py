@@ -1,7 +1,7 @@
 from setuptools import setup
 setup(
     name='Micromigrate',
-    get_version_from_scm=True,
+    use_scm_version=True,
     description='Minimal Migration Manager for sqlite',
     packages=[
         'micromigrate',
