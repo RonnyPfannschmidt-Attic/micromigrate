@@ -29,9 +29,9 @@ def db(request, dbname):
     return backends[request.param].from_path(dbname)
 
 
-@pytest.mark.tryfirst
-def pytest_runtest_makereport(item, __multicall__):
-    report = __multicall__.execute()
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item):
+    report = (yield).get_result()
     dbname = getattr(item, '_dbname', None)
     if dbname is not None:
         from micromigrate.util import output_or_raise
@@ -40,4 +40,3 @@ def pytest_runtest_makereport(item, __multicall__):
                 ('db', output_or_raise('sqlite3', '.dump', dbname)))
         except:
             pass
-    return report
