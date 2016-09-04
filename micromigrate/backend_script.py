@@ -25,6 +25,6 @@ class ScriptBackend(BackendBase):
     def run_query(self, query):
         out = output_or_raise(
             'sqlite3', '-line',
-            str(self.dbname), query,
+            self.dbname, query,
         )
         return parse_lineoutput(out)

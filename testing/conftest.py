@@ -1,3 +1,4 @@
+import os
 import pytest
 
 from micromigrate.backend_script import ScriptBackend
@@ -12,15 +13,13 @@ backends = {
 
 @pytest.fixture
 def dbname(request, tmpdir):
-    db = tmpdir.join('test.sqlite.db')
+    db = tmpdir.join('test.sqlite.db').strpath
 
     @request.addfinalizer
     def cleanup():
         import subprocess
-        if db.check():
-            subprocess.call([
-                'sqlite3', str(db), '.dump',
-            ])
+        if os.path.exists(db):
+            subprocess.call(['sqlite3', db, '.dump'])
     return db
 
 
