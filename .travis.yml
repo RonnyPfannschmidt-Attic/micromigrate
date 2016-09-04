@@ -1,10 +1,15 @@
 language: python
 python:
 - '3.5'
-#- '3.6'
-
 install:
-  - pip install setuptools_scm tox
-
-script:
-  tox -e py
+- pip install setuptools_scm tox
+script: tox -e py
+deploy:
+  provider: pypi
+  user: ronny
+  password:
+    secure: TzqaO72MgxSXttjlm1fbFuubQKgC8Y6UsGmoNdwF/J1EPd3OcwCVxyQ5J4EhUeFwd9DNUTs0qk+VqPD4mm9x7SKnSFfyMbq5ItxDmKnoq+rNadZQerv4iFAqfzAjLR8UOCAsx9kX2/edhleMinvZ1GLkEtKgBH3OQ8I8WEIlwuqN+2GIwgdOIl0w2thunc2FH9vOb14LYm4z+F4oyjIV1JxOZ3NGB+XAhJpoUHQiu+beM3O93IvJkHSja/VQlMRa0sf/xLDj3hBdp68+Gd/4nmz+ULHhlDPjkGooUVgXw3iMCUYMUOQ3czhofQPtE2dC4Mf/x6l2BKs3fa6bFYu5n1Fhe2ppF6xfgz0wAUDbM/gv2Qv+3Gdo/4cDL39H1ppxhiIMNwWeA4YMPt6U7noYgTunbz5JjFi5tgkFZPU/pVXUXb8rTb2YnW/7lt3dkQ8ee1DFAQJ7U5BXKLbHZODXPtJW0A/UYQyenhFzvy4sXS+BXqd8m3/NvE3NiQGmNNfECb1dsJe3k00NyeOAbTGOrW3hMTUsfptf0mlvSe+Fre2sKbF9/VU1q2SajnHcPF7EZa+AjNB9KMxfcXVLBLUGcPOUg0Aeri9EtD4XPP2mbburIQUFghnFaiK+eZqjteU1MGeViB406p9Zgf/FN1P7FQyhct/5jMaN4VuoaODZSTc=
+  on:
+    tags: true
+    distributions: sdist bdist_wheel
+    repo: RonnyPfannschmidt/micromigrate
