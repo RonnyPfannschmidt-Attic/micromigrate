@@ -1,9 +1,5 @@
-hgdistver
-apsw
-sqlplarse
+setuptools_scm
+sqlparse
 sphinx
 pytest
-pytest-xdist
-pytest-cache
 flake8
-pycmd
