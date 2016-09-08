@@ -64,7 +64,7 @@ def parse_migration(sql):
                 continue  # XXX warn
             if meta[key] is None:
                 meta[key] = frozenset(items)
-            #XXX FAIL
+            # XXX FAIL
 
     assert meta['name'] is not None
     return Migration(**meta)
